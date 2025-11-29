@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "SmartCar - Paso 1",
+            "request": "launch",
+            "mainClass": "smartcar.starter.SmartCarStarter",
+            "projectName": "smartcar"
+        },
+        {
+            "type": "java",
+            "name": "SmartCar - Con Navigator",
+            "request": "launch",
+            "mainClass": "smartcar.starter.SmartCarStarter_Navigator",
+            "projectName": "smartcar"
+        }
+    ]
+}
+

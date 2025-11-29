@@ -1,0 +1,12 @@
+{
+    "java.project.sourcePaths": [
+        "dispositivo"
+    ],
+    "java.project.outputPath": "bin",
+    "java.project.referencedLibraries": [
+        "**/lib/**/*.jar"
+    ],
+    "java.dependency.packagePresentation": "hierarchical",
+    "java.configuration.updateBuildConfiguration": "interactive"
+}
+ 

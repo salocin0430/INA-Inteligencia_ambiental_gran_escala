@@ -1,0 +1,192 @@
+{
+    // Utilitzeu IntelliSense per aprendre sobre els atributs possibles.
+    // Passeu el cursor per sobre per veure les descripcions dels atributs existents.
+    // Per a més informació, visiteu: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Dispositivo",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.DispositivoIniciador",
+            "args": [
+                "ttmi050",
+                "ttmi050.iot.upv.es",
+                8182,
+                "tcp://tambori.dsic.upv.es:1883"]
+        },
+        {
+            "type": "java",
+            "name": "Dispositivo2",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.DispositivoIniciador",
+            "args": [
+                "ttmi051",
+                "ttmi051.iot.upv.es",
+                8183,
+                "tcp://tambori.dsic.upv.es:1883"]
+        },
+        {
+            "type": "java",
+            "name": "DispositivoPi4Jv2",
+            "request": "launch",
+            "mainClass": "dispositivo.pi4j2.iniciador.DispositivoIniciadorPi4Jv2",
+            "args": [
+                "ttmi050",
+                "ttmi050.iot.upv.es",
+                8182,
+                "tcp://mqttserver:1883"]
+        },
+        // Ejercicio 10 - Controlador Semaforico
+        {
+            "type": "java",
+            "name": "ControladorSemaforico",
+            "request": "launch",
+            "mainClass": "dispositivo.controlador.ControladorSemaforicoIniciador",
+            "args": [
+                "tcp://tambori.dsic.upv.es:1883",
+                "ttmi050",
+                "ttmi051",
+                "20",
+                "5",
+                "3"]
+        },
+        // Ejercicio 11 - Controlador Maestro-Esclavos
+        {
+            "type": "java",
+            "name": "ControladorMaestroEsclavos",
+            "request": "launch",
+            "mainClass": "dispositivo.controlador.ControladorMaestroEsclavosIniciador",
+            "args": [
+                "tcp://tambori.dsic.upv.es:1883",
+                "ttmi050",  // Maestro
+                "ttmi051",  // Esclavo 1
+                "ttmi052"]  // Esclavo 2
+        },
+        //Maestro 
+        {
+            "type": "java",
+            "name": "Maestro",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.DispositivoIniciador",
+            "args": [
+                "ttmi050",
+                "ttmi050.iot.upv.es",
+                8180,
+                "tcp://tambori.dsic.upv.es:1883"]
+        },
+        //Esclavos
+        {
+            "type": "java",
+            "name": "Esclavo1",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.DispositivoIniciador",
+            "args": [
+                "ttmi051",
+                "ttmi051.iot.upv.es",
+                8181,
+                "tcp://tambori.dsic.upv.es:1883"]
+        },
+        {
+            "type": "java",
+            "name": "Esclavo2",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.DispositivoIniciador",
+            "args": [
+                "ttmi052",
+                "ttmi052.iot.upv.es",
+                8182,
+                "tcp://tambori.dsic.upv.es:1883"]
+        },
+        // Seminario 3 - Smart Traffic - Paso 1
+        {
+            "type": "java",
+            "name": "SmartCar - Paso 1",
+            "request": "launch",
+            "mainClass": "smartcar.starter.SmartCarStarter"
+        },
+        {
+            "type": "java",
+            "name": "SmartCar - Con Navigator",
+            "request": "launch",
+            "mainClass": "smartcar.starter.SmartCarStarter_Navigator"
+        }, 
+        {
+            "type": "java",
+            "name": "SmartRoad - Paso 1",
+            "request": "launch",
+            "mainClass": "smartroad.starter.SmartRoadStarter"
+        },
+        {
+            "type": "java",
+            "name": "SmartCity - Paso 1",
+            "request": "launch",
+            "mainClass": "smartcity.starter.SmartCityStarter"
+        },
+        // Seminario 4 - AWS IoT
+        // IMPORTANTE: Los clientId deben empezar con "dispositivo2-" para coincidir con la política
+        {
+            "type": "java",
+            "name": "AWS IoT - Solo Conectar",
+            "request": "launch",
+            "mainClass": "aws.iot.connection.AWSIoTThingConnectionStarter",
+            "args": [
+                "clientId=dispositivo2-test"
+            ],
+            "cwd": "${workspaceFolder}/seminario-4-dispositivo-iot-aws"
+        },
+        {
+            "type": "java",
+            "name": "AWS IoT - Publicar Mensaje",
+            "request": "launch",
+            "mainClass": "aws.iot.connection.AWSIoTThingConnectionStarter",
+            "args": [
+                "clientId=dispositivo2-publicador",
+                "pub=true",
+                "topic=test/topic",
+                "msg={\"mensaje\":\"Hola desde AWS IoT\"}"
+            ],
+            "cwd": "${workspaceFolder}/seminario-4-dispositivo-iot-aws"
+        },
+        {
+            "type": "java",
+            "name": "AWS IoT - Suscribirse a Topic",
+            "request": "launch",
+            "mainClass": "aws.iot.connection.AWSIoTThingConnectionStarter",
+            "args": [
+                "clientId=dispositivo2-suscriptor",
+                "sub=true",
+                "topic=test/topic"
+            ],
+            "cwd": "${workspaceFolder}/seminario-4-dispositivo-iot-aws"
+        },
+        {
+            "type": "java",
+            "name": "AWS IoT - Device Shadow (Reported)",
+            "request": "launch",
+            "mainClass": "aws.iot.connection.AWSIoTThingConnectionStarter",
+            "args": [
+                "clientId=dispositivo2-device",
+                "pub=true",
+                "shadow=true",
+                "r=true",
+                "topic=$aws/things/dispositivo2/shadow/update"
+            ],
+            "cwd": "${workspaceFolder}/seminario-4-dispositivo-iot-aws"
+        },
+        {
+            "type": "java",
+            "name": "AWS IoT - Device Shadow (Desired)",
+            "request": "launch",
+            "mainClass": "aws.iot.connection.AWSIoTThingConnectionStarter",
+            "args": [
+                "clientId=dispositivo2-controlador",
+                "pub=true",
+                "shadow=true",
+                "r=false",
+                "topic=$aws/things/dispositivo2/shadow/update"
+            ],
+            "cwd": "${workspaceFolder}/seminario-4-dispositivo-iot-aws"
+        }
+    ]
+}
