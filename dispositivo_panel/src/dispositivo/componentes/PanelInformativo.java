@@ -42,7 +42,7 @@ public class PanelInformativo implements MqttCallback {
     
     public PanelInformativo(String mqttBroker, String ttmiID, String roadSegment, int ubicacionInicial) {
         this.roadSegment = roadSegment;
-        this.loggerId = "PanelInformativo";
+        this.loggerId = "PanelInformativo" + "-" + ttmiID;
         this.ttmiID = ttmiID;
         this.ubicacionInicial = ubicacionInicial;
         this.topicBase = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/"; // Usar el ID del maestro para el topic base

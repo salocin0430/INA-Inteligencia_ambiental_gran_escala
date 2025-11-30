@@ -15,6 +15,20 @@
                 "R1s2a",
                 "50"
             ]
+        },
+        {
+            "type": "java",
+            "name": "SignalSpeedIniciador",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.SignalSpeedIniciador",
+            "args": [
+                "tcp://tambori.dsic.upv.es:1883",
+                "S1",
+                "R1s2a",
+                "100",
+                "50",
+                "100"
+            ]
         }
     ]
 }
