@@ -6,9 +6,9 @@
     "configurations": [
         {
             "type": "java",
-            "name": "ControladorPanelInformativoIniciador",
+            "name": "PanelInformativoIniciador",
             "request": "launch",
-            "mainClass": "dispositivo.iniciador.ControladorPanelInformativoIniciador",
+            "mainClass": "dispositivo.iniciador.PanelInformativoIniciador",
             "args": [
                 "tcp://tambori.dsic.upv.es:1883",
                 "ttmi050",

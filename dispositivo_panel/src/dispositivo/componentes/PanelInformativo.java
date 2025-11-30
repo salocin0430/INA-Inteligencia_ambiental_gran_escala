@@ -1,5 +1,4 @@
-package dispositivo.iniciador;
-// Ejercicio 11 - Controlador Maestro-Esclavos
+package dispositivo.componentes;
 
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -9,22 +8,18 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.OptionalInt;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONObject;
 
+import dispositivo.interfaces.FuncionStatus;
 import dispositivo.interfaces.IDispositivo;
+import dispositivo.interfaces.IFuncion;
 import dispositivo.utils.MySimpleLogger;
 
-import dispositivo.componentes.Dispositivo;
-import dispositivo.componentes.Funcion;
-import dispositivo.interfaces.FuncionStatus;
-import dispositivo.interfaces.IFuncion;
 
-
-public class ControladorPanelInformativo implements MqttCallback {
+public class PanelInformativo implements MqttCallback {
     
     private MqttClient mqttClientSubscriber;  // Para suscribirse (recibir)
     private MqttClient mqttClientPublisher;   // Para publicar
@@ -45,22 +40,33 @@ public class ControladorPanelInformativo implements MqttCallback {
     private int contadorAccidentes = 0;  // Contador inicializado a 0
 
     
-    public ControladorPanelInformativo(String mqttBroker, String ttmiID, String roadSegment, int ubicacionInicial) {
+    public PanelInformativo(String mqttBroker, String ttmiID, String roadSegment, int ubicacionInicial) {
         this.roadSegment = roadSegment;
-        this.loggerId = "PanelInformativoControlador";
+        this.loggerId = "PanelInformativo";
         this.ttmiID = ttmiID;
         this.ubicacionInicial = ubicacionInicial;
         this.topicBase = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/"; // Usar el ID del maestro para el topic base
         this.topicInfo = topicBase + roadSegment + "/info";
         this.topicTraffic = topicBase + roadSegment + "/traffic";
         this.topicAlerts = topicBase + roadSegment + "/alerts";
-        
+
+        this.semaforo = Dispositivo.build(ttmiID, ttmiID+".iot.upv.es", 8182 , mqttBroker);
+        IFuncion f1 = Funcion.build("f1", FuncionStatus.OFF);
+        semaforo.addFuncion(f1);
+        IFuncion f2 = Funcion.build("f2", FuncionStatus.OFF);
+        semaforo.addFuncion(f2);
+        IFuncion f3 = Funcion.build("f3", FuncionStatus.OFF);
+        semaforo.addFuncion(f3);
+        // Arrancamos el semáforo
+        semaforo.iniciar();
+            
+
         try {
             // Crear cliente MQTT para suscripciones (recibir)
-            this.mqttClientSubscriber = new MqttClient(mqttBroker, "PanelInformativoControlador_Sub", new MemoryPersistence());
+            this.mqttClientSubscriber = new MqttClient(mqttBroker, "PanelInformativo_Sub", new MemoryPersistence());
             
             // Crear cliente MQTT para publicaciones (enviar)
-            this.mqttClientPublisher = new MqttClient(mqttBroker, "PanelInformativoControlador_Pub", new MemoryPersistence());
+            this.mqttClientPublisher = new MqttClient(mqttBroker, "PanelInformativo_Pub", new MemoryPersistence());
             
             // Configurar opciones de conexión
             MqttConnectOptions connOpts = new MqttConnectOptions();
@@ -82,13 +88,11 @@ public class ControladorPanelInformativo implements MqttCallback {
     }
     
     /**
-     * Inicia el controlador maestro-esclavos
+     * Inicia el PanelInformativo
      */
-    public void iniciar(IDispositivo semaforo) throws MqttException {
-        this.semaforo = semaforo;
+    public void iniciar() throws MqttException {
 
-
-        MySimpleLogger.info(loggerId, "=== INICIANDO CONTROLADOR PanelInformativo ===");
+        MySimpleLogger.info(loggerId, "=== INICIANDO PanelInformativo ===");
         MySimpleLogger.info(loggerId, "RoadSegment: " + roadSegment);
         
         // Suscribirse al topic de información de la función f1 del maestro
