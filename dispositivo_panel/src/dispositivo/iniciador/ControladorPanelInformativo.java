@@ -226,7 +226,7 @@ public class ControladorPanelInformativo implements MqttCallback {
     
     /**
      * Envía un comando MQTT a una función específica
-     */
+    
     private void enviarComando(String dispositivoId, String funcionId, String accion) throws MqttException {
         String topic = "ina_08/dispositivo/" + dispositivoId + "/funcion/" + funcionId + "/comandos";
         
@@ -245,7 +245,6 @@ public class ControladorPanelInformativo implements MqttCallback {
             throw new MqttException(e);
         }
     }
-    
     /**
      * Cierra la conexión MQTT
      */
