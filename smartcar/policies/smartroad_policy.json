@@ -1,0 +1,43 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:client/road-manager-*",
+        "arn:aws:iot:us-east-1:931743417574:client/RoadManager-*",
+        "arn:aws:iot:us-east-1:931743417574:client/smartroad-*",
+        "arn:aws:iot:us-east-1:931743417574:client/SmartRoad-*",
+        "arn:aws:iot:us-east-1:931743417574:client/gestor-carreteras-*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iot:Publish",
+        "iot:Receive"
+      ],
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:topic/smartcities/traffic/PTPaterna/road/*/info"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/smartcities/traffic/PTPaterna/road/*/alerts",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/smartcities/traffic/PTPaterna/road/*/info"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Receive",
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:topic/smartcities/traffic/PTPaterna/road/*/alerts",
+        "arn:aws:iot:us-east-1:931743417574:topic/smartcities/traffic/PTPaterna/road/*/info"
+      ]
+    }
+  ]
+}
+

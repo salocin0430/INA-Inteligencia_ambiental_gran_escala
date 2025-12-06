@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:client/dispositivo2-*",
+        "arn:aws:iot:us-east-1:931743417574:client/SmartCar*-*",
+        "arn:aws:iot:us-east-1:931743417574:client/smartcar-*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iot:Publish",
+        "iot:Receive"
+      ],
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/get",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/get/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/get/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/update",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/update/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/update/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/update/delta",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/delete",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/delete/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topic/$aws/things/*/shadow/delete/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topic/smartcities/traffic/PTPaterna/road/*/alerts",
+        "arn:aws:iot:us-east-1:931743417574:topic/smartcities/traffic/PTPaterna/road/*/info"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": [
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/get/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/get/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/update/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/update/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/update/delta",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/delete/accepted",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/$aws/things/*/shadow/delete/rejected",
+        "arn:aws:iot:us-east-1:931743417574:topicfilter/smartcities/traffic/PTPaterna/road/*/info"
+      ]
+    }
+  ]
+}
