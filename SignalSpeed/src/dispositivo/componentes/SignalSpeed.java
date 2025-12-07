@@ -10,9 +10,6 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import dispositivo.utils.MySimpleLogger;
 
-
-// AWS IoT components (siguiendo patrón de smartcar)
-
 public class SignalSpeed implements MqttCallback {
     
     private String roadSegment;
@@ -20,16 +17,16 @@ public class SignalSpeed implements MqttCallback {
     private int velocidadMaxima;
     private int posicionInicio;
     private int posicionFin;
-    private MqttClient mqttClientPublisher;   // Para publicar LOCAL
+    private MqttClient mqttClientPublisher;   // Ahora actúa como Publisher y Subscriber
     private String topicPublicacion;
+    private String topicStep = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/step"; 
     private String loggerId;
 
-    // AWS IoT components (siguiendo patrón de smartcar)
     private SignalSpeed_AWSShadowPublisher awsShadowPublisher = null;
     private SignalSpeed_AWSShadowSubscriber awsShadowSubscriber = null;
     private String awsEndpoint;
     private String awsThingName;
-    private boolean señalActiva = false;  // Estado actual de la señal
+    private boolean señalActiva = false; 
 
     public SignalSpeed(String roadSegment, String id, int velocidadMaxima, int posicionInicio, int posicionFin,
                       String mqttBroker) {
@@ -42,16 +39,21 @@ public class SignalSpeed implements MqttCallback {
         this.loggerId = "SignalSpeed-" + id;
 
         try {
-            // Crear cliente MQTT para publicaciones LOCAL (sin cambios)
             this.mqttClientPublisher = new MqttClient(mqttBroker, "SignalSpeed_Pub_" + id, new MemoryPersistence());
             
-            // Configurar opciones de conexión LOCAL
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
             connOpts.setKeepAliveInterval(60);
             
+            //Asignamos el callback ANTES de conectar
+            this.mqttClientPublisher.setCallback(this);
+
             this.mqttClientPublisher.connect(connOpts);
             MySimpleLogger.info(loggerId, "Conectado al broker MQTT LOCAL: " + mqttBroker);
+
+            // Nos suscribimos al topic del step
+            this.mqttClientPublisher.subscribe(topicStep);
+            MySimpleLogger.info(loggerId, "Suscrito al topic STEP: " + topicStep);
             
         } catch (MqttException e) {
             MySimpleLogger.error(loggerId, "Error al conectar con MQTT LOCAL: " + e.getMessage());
@@ -184,7 +186,11 @@ public class SignalSpeed implements MqttCallback {
     // Métodos MqttCallback requeridos (para compatibilidad futura)
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        // No suscribe, pero requerido por interfaz
+
+        if (topic.equals(topicStep)) {
+            MySimpleLogger.info(loggerId, "Step recibido. Publicando estado...");
+            publicarEstado();
+        }
     }
 
     @Override
