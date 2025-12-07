@@ -18,6 +18,9 @@ import dispositivo.interfaces.IDispositivo;
 import dispositivo.interfaces.IFuncion;
 import dispositivo.utils.MySimpleLogger;
 
+import dispositivo.componentes.PanelInformativo_AWSShadowPublisher;
+import dispositivo.componentes.PanelInformativo_AWSShadowSubscriber;
+
 // AWS IoT components (siguiendo patrón de smartcar)
 
 public class PanelInformativo implements MqttCallback {
