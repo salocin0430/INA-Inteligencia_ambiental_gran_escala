@@ -10,7 +10,7 @@
             "request": "launch",
             "mainClass": "dispositivo.iniciador.SignalSpeedIniciador",
             "args": [
-                "tcp://tambori.dsic.upv.es:1883",
+                "tcp://tambori.dsic.upv.es:10083",
                 "S1",
                 "R1s2a",
                 "100",

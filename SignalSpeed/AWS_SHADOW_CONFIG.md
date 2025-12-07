@@ -32,7 +32,7 @@ Ver ejemplo en `policies/senial_SL_R1s1_001_policy-v1.json`
 ### Opción 1: Iniciador con parámetros (básico)
 ```bash
 java dispositivo.iniciador.SignalSpeedIniciador \
-    tcp://tambori.dsic.upv.es:1883 \
+    tcp://tambori.dsic.upv.es:10083 \
     SL_R1s1_001 \
     R1s1 \
     50 \
@@ -135,7 +135,7 @@ Recibirás estados como:
 - Verifica permisos de archivo
 
 ### Problema: "Conexión local MQTT no funciona"
-- Verifica que el broker MQTT local está corriendo en `tambori.dsic.upv.es:1883`
+- Verifica que el broker MQTT local está corriendo en `tambori.dsic.upv.es:10083`
 - Revisa que el topic está correcto
 
 ## Estructura de Archivos

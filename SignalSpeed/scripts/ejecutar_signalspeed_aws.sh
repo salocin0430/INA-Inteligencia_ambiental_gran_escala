@@ -18,7 +18,7 @@ done
 echo "Classpath: $CLASSPATH"
 
 # Ejemplo de parámetros (modifica esto):
-MQTT_BROKER="tcp://tambori.dsic.upv.es:1883"
+MQTT_BROKER="tcp://tambori.dsic.upv.es:10083"
 ROAD_SEGMENT="R1s1"
 SIGNAL_ID="SL_R1s1_001"
 VELOCIDAD_MAX=50

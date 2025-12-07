@@ -19,7 +19,7 @@ done
 echo "Classpath: $CLASSPATH"
 
 # Ejemplo de parámetros (modifica esto):
-MQTT_BROKER="tcp://tambori.dsic.upv.es:1883"
+MQTT_BROKER="tcp://tambori.dsic.upv.es:10083"
 TTMI_ID="ttmi050"
 ROAD_SEGMENT="R1s6a"
 UBICACION=50

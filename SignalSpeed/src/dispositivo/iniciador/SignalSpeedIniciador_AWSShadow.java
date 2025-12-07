@@ -23,7 +23,7 @@ public class SignalSpeedIniciador_AWSShadow {
 	public static void main(String[] args) {
 		
 		// Configuración de la señal de velocidad
-		String mqttBroker = "tcp://tambori.dsic.upv.es:1883";  // MQTT LOCAL
+		String mqttBroker = "tcp://tambori.dsic.upv.es:10083";  // MQTT LOCAL
 		String roadSegment = "R1s1";
 		String signalId = "SL_R1s1_001";
 		int velocidadMaxima = 50;  // 50 km/h

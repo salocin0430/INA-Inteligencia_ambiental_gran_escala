@@ -14,9 +14,9 @@ public class PanelInformativoIniciador {
             MySimpleLogger.error("PanelInformativoIniciador", 
                 "Uso: java PanelInformativoIniciador <mqtt-broker> <ttmiID> <road-segment> <ubicación-inicial> [--aws-shadow <thingName>]");
             MySimpleLogger.error("PanelInformativoIniciador", 
-                "Ejemplo sin AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50");
+                "Ejemplo sin AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:10083 ttmi050 R1s6a 50");
             MySimpleLogger.error("PanelInformativoIniciador", 
-                "Ejemplo con AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50 --aws-shadow panel-R1s6a-001");
+                "Ejemplo con AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:10083 ttmi050 R1s6a 50 --aws-shadow panel-R1s6a-001");
             System.exit(1);
         }
         

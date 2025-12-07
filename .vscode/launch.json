@@ -76,7 +76,7 @@
             "mainClass": "dispositivo.iniciador.PanelInformativoIniciador_AWSShadow",
             "projectName": "PanelInformativo",
             "args": [
-                "tcp://tambori.dsic.upv.es:1883",
+                "tcp://tambori.dsic.upv.es:10083",
                 "ttmi050",
                 "R1s6a",
                 "50",

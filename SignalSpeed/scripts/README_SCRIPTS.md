@@ -22,7 +22,7 @@ SignalSpeed/
    ```
 
 2. **Conectividad MQTT:**
-   - MQTT Local: `tcp://tambori.dsic.upv.es:1883`
+   - MQTT Local: `tcp://tambori.dsic.upv.es:10083`
    - Usado para recibir eventos "step" y publicar estado de la señal
 
 3. **Certificados AWS IoT (opcional):**
@@ -52,7 +52,7 @@ O manualmente con parámetros personalizados:
 
 ```bash
 java -cp "bin:lib/*" dispositivo.iniciador.SignalSpeedIniciador_AWSShadow \
-    tcp://tambori.dsic.upv.es:1883 \
+    tcp://tambori.dsic.upv.es:10083 \
     R1s1 \
     SL_R1s1_001 \
     50 \
@@ -73,7 +73,7 @@ Ejecuta el controlador de señales de velocidad con soporte AWS IoT Device Shado
 ```
 
 **Parámetros internos (edita el script para cambiarlos):**
-- `MQTT_BROKER`: Dirección del broker MQTT local (default: `tcp://tambori.dsic.upv.es:1883`)
+- `MQTT_BROKER`: Dirección del broker MQTT local (default: `tcp://tambori.dsic.upv.es:10083`)
 - `ROAD_SEGMENT`: Segmento de carretera (default: `R1s1`)
 - `SIGNAL_ID`: ID de la señal (default: `SL_R1s1_001`)
 - `VELOCIDAD_MAX`: Velocidad máxima en km/h (default: `50`)
@@ -173,7 +173,7 @@ Comandos soportados:
 - Verifica que los archivos `.java` estén en `src/dispositivo/`
 
 ### Error: "Error al conectar con MQTT LOCAL"
-- Verifica que el broker MQTT local esté accesible en `tcp://tambori.dsic.upv.es:1883`
+- Verifica que el broker MQTT local esté accesible en `tcp://tambori.dsic.upv.es:10083`
 
 ### Error: "Error connecting to AWS IoT"
 - Verifica que los certificados estén en `certs/` con los nombres correctos

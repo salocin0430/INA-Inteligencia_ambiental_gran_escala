@@ -22,7 +22,7 @@ PanelInformativo/
    ```
 
 2. **Conectividad MQTT:**
-   - MQTT Local: `tcp://tambori.dsic.upv.es:1883`
+   - MQTT Local: `tcp://tambori.dsic.upv.es:10083`
    - Usado para recibir información de tráfico y publicar datos del panel
 
 3. **Certificados AWS IoT (opcional):**
@@ -51,7 +51,7 @@ O manualmente con parámetros personalizados:
 
 ```bash
 java -cp "bin:lib/*" dispositivo.iniciador.PanelInformativoIniciador_AWSShadow \
-    tcp://tambori.dsic.upv.es:1883 \
+    tcp://tambori.dsic.upv.es:10083 \
     ttmi050 \
     R1s6a \
     50 \
@@ -70,7 +70,7 @@ Ejecuta el controlador del panel informativo con soporte AWS IoT Device Shadow.
 ```
 
 **Parámetros internos (edita el script para cambiarlos):**
-- `MQTT_BROKER`: Dirección del broker MQTT local (default: `tcp://tambori.dsic.upv.es:1883`)
+- `MQTT_BROKER`: Dirección del broker MQTT local (default: `tcp://tambori.dsic.upv.es:10083`)
 - `TTMI_ID`: ID del panel (TTMI - Traffic and Travel information Managed Instance) (default: `ttmi050`)
 - `ROAD_SEGMENT`: Segmento de carretera (default: `R1s6a`)
 - `UBICACION`: Ubicación/posición en la carretera en metros (default: `50`)
@@ -179,7 +179,7 @@ El panel puede mostrar:
 - Verifica que los archivos `.java` estén en `src/dispositivo/`
 
 ### Error: "Error al conectar con MQTT LOCAL"
-- Verifica que el broker MQTT local esté accesible en `tcp://tambori.dsic.upv.es:1883`
+- Verifica que el broker MQTT local esté accesible en `tcp://tambori.dsic.upv.es:10083`
 
 ### Error: "Error connecting to AWS IoT"
 - Verifica que los certificados estén en `certs/` con los nombres correctos

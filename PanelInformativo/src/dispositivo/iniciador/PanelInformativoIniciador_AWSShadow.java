@@ -11,7 +11,7 @@ import dispositivo.utils.MySimpleLogger;
  *   java PanelInformativoIniciador_AWSShadow <mqtt-broker> <ttmiID> <road-segment> <ubicación-inicial> <aws-thing-name>
  * 
  * Ejemplo:
- *   java PanelInformativoIniciador_AWSShadow tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50 panel-R1s6a-001
+ *   java PanelInformativoIniciador_AWSShadow tcp://tambori.dsic.upv.es:10083 ttmi050 R1s6a 50 panel-R1s6a-001
  */
 public class PanelInformativoIniciador_AWSShadow {
     
@@ -24,7 +24,7 @@ public class PanelInformativoIniciador_AWSShadow {
             MySimpleLogger.error("PanelInformativoIniciador_AWSShadow", 
                 "Uso: java PanelInformativoIniciador_AWSShadow <mqtt-broker> <ttmiID> <road-segment> <ubicación-inicial> <aws-thing-name>");
             MySimpleLogger.error("PanelInformativoIniciador_AWSShadow", 
-                "Ejemplo: java PanelInformativoIniciador_AWSShadow tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50 panel-R1s6a-001");
+                "Ejemplo: java PanelInformativoIniciador_AWSShadow tcp://tambori.dsic.upv.es:10083 ttmi050 R1s6a 50 panel-R1s6a-001");
             System.exit(1);
         }
         

@@ -151,7 +151,7 @@ cd PanelInformativo
 ## 📡 Flujo de Datos
 
 ### Brokers MQTT
-- **Local:** `tcp://tambori.dsic.upv.es:1883` — Topics simulador, vehículos, paneles
+- **Local:** `tcp://tambori.dsic.upv.es:10083` — Topics simulador, vehículos, paneles
 - **AWS IoT:** AWS IoT Core MQTT — Device Shadow para comandos remotos
 
 ### Topics MQTT Principales
