@@ -214,33 +214,35 @@ public class PanelInformativo implements MqttCallback {
             // Parsear el mensaje JSON
             JSONObject statusMessage = new JSONObject(payload);
             JSONObject msg = statusMessage.getJSONObject("msg");
+            String type = statusMessage.getString("type");
 
-            if (topic.equals(topicTraffic)) {
-                // Obtener el valor del campo "status"
-                String status = msg.getString("status");
-                MySimpleLogger.info(loggerId, "Status obtenido: " + status);
+            if (topic.equals(topicInfo)) {
 
-                switch (status) {
-                    case "Free_Flow", "Mostly_Free_Flow" -> {
-                        semaforo.getFuncion("f1").apagar();
-                        MySimpleLogger.info(loggerId, "Apagando f1");
+                if (type.equals("ROAD_STATUS")) {
+                    // Obtener el valor del campo "status"
+                    String status = msg.getString("status");
+                    MySimpleLogger.info(loggerId, "Status obtenido: " + status);
+
+                    switch (status) {
+                        case "Free_Flow", "Mostly_Free_Flow" -> {
+                            semaforo.getFuncion("f1").apagar();
+                            MySimpleLogger.info(loggerId, "Apagando f1");
+                        }
+                        case "Limited_Manouvers" -> {
+                            semaforo.getFuncion("f1").parpadear();  
+                            MySimpleLogger.info(loggerId, "Parpadeando f1");
+                        }
+                        case "No_Manouvers", "Collapsed" -> {
+                            semaforo.getFuncion("f1").encender();
+                            MySimpleLogger.info(loggerId, "Encendiendo f1");
+                        }
+                        default -> {
+                            MySimpleLogger.warn(loggerId, "Estado desconocido: " + status);
+                        }
                     }
-                    case "Limited_Manouvers" -> {
-                        semaforo.getFuncion("f1").parpadear();  
-                        MySimpleLogger.info(loggerId, "Parpadeando f1");
-                    }
-                    case "No_Manouvers", "Collapsed" -> {
-                        semaforo.getFuncion("f1").encender();
-                        MySimpleLogger.info(loggerId, "Encendiendo f1");
-                    }
-                    default -> {
-                        MySimpleLogger.warn(loggerId, "Estado desconocido: " + status);
-                    }
+                    publishAwsState(); //  Publicar en AWS después de cambio
                 }
-                publishAwsState(); //  Publicar en AWS después de cambio
-                
-            } else if (topic.equals(topicAlerts)) {
-                String type = statusMessage.getString("type");
+            } else if (topic.equals(topicInfo)) {
 
                 if (type.equals("ACCIDENT")) {
                     String accidenteId = msg.getString("id");
@@ -264,45 +266,49 @@ public class PanelInformativo implements MqttCallback {
                 }
                 publishAwsState(); // Publicar en AWS después de cambio
                 
-            } else if (topic.equals(topicInfo)) {
-                String action = msg.getString("action");
-                String vehicleRole = msg.getString("vehicle-role");
-                String vehicleId = msg.getString("vehicle-id");
-                int position = msg.getInt("position");
+            } else if (topic.equals(topicTraffic)) {
 
-                boolean esVehiculoEspecial = vehicleRole.equals("Ambulance") || vehicleRole.equals("Police");
-                int diferenciaPosicion = Math.abs(position - ubicacionInicial);
+                    if (type.equals("TRAFFIC")) {
 
-                if (esVehiculoEspecial) {
-                    if ("VEHICLE_IN".equals(action)) {
-                        if (diferenciaPosicion < 200) {
-                            vehiculosEspecialesEnSegmentoCerca.put(vehicleId, position);
-                            vehiculosEspecialesEnSegmentoLejos.remove(vehicleId);
-                        } else {
-                            vehiculosEspecialesEnSegmentoLejos.put(vehicleId, position);
+                    String action = msg.getString("action");
+                    String vehicleRole = msg.getString("vehicle-role");
+                    String vehicleId = msg.getString("vehicle-id");
+                    int position = msg.getInt("position");
+
+                    boolean esVehiculoEspecial = vehicleRole.equals("Ambulance") || vehicleRole.equals("Police");
+                    int diferenciaPosicion = Math.abs(position - ubicacionInicial);
+
+                    if (esVehiculoEspecial) {
+                        if ("VEHICLE_IN".equals(action)) {
+                            if (diferenciaPosicion < 200) {
+                                vehiculosEspecialesEnSegmentoCerca.put(vehicleId, position);
+                                vehiculosEspecialesEnSegmentoLejos.remove(vehicleId);
+                            } else {
+                                vehiculosEspecialesEnSegmentoLejos.put(vehicleId, position);
+                                vehiculosEspecialesEnSegmentoCerca.remove(vehicleId);
+                            }
+                            
+                        } else if ("VEHICLE_OUT".equals(action)) {
                             vehiculosEspecialesEnSegmentoCerca.remove(vehicleId);
+                            vehiculosEspecialesEnSegmentoLejos.remove(vehicleId);
                         }
-                        
-                    } else if ("VEHICLE_OUT".equals(action)) {
-                        vehiculosEspecialesEnSegmentoCerca.remove(vehicleId);
-                        vehiculosEspecialesEnSegmentoLejos.remove(vehicleId);
-                    }
 
-                    int vehiculosCerca = vehiculosEspecialesEnSegmentoCerca.size();
-                    int vehiculosLejos = vehiculosEspecialesEnSegmentoLejos.size();
+                        int vehiculosCerca = vehiculosEspecialesEnSegmentoCerca.size();
+                        int vehiculosLejos = vehiculosEspecialesEnSegmentoLejos.size();
 
-                    if (vehiculosCerca == 0 && vehiculosLejos == 0) {
-                        semaforo.getFuncion("f3").apagar();
-                        MySimpleLogger.info(loggerId, "Apagando f3");
-                    } else if (vehiculosCerca > 0) {
-                        semaforo.getFuncion("f3").parpadear();
-                        MySimpleLogger.info(loggerId, "Parpadeando f3");
-                    } else if (vehiculosLejos > 0) {
-                        semaforo.getFuncion("f3").encender();
-                        MySimpleLogger.info(loggerId, "Encendiendo f3");
+                        if (vehiculosCerca == 0 && vehiculosLejos == 0) {
+                            semaforo.getFuncion("f3").apagar();
+                            MySimpleLogger.info(loggerId, "Apagando f3");
+                        } else if (vehiculosCerca > 0) {
+                            semaforo.getFuncion("f3").parpadear();
+                            MySimpleLogger.info(loggerId, "Parpadeando f3");
+                        } else if (vehiculosLejos > 0) {
+                            semaforo.getFuncion("f3").encender();
+                            MySimpleLogger.info(loggerId, "Encendiendo f3");
+                        }
                     }
+                    publishAwsState(); // Publicar en AWS después de cambio
                 }
-                publishAwsState(); // Publicar en AWS después de cambio
                 
             } else {
                 MySimpleLogger.warn(loggerId, "Topic desconocido: " + topic);
