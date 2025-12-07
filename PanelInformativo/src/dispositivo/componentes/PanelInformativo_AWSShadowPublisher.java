@@ -164,6 +164,10 @@ public class PanelInformativo_AWSShadowPublisher {
 		System.out.println("(AWSShadowPublisher: " + this.panel.getTtmiID() + ") " + message);
 	}
 	
+	private void _error(String message) {
+		System.err.println("(AWSShadowPublisher: " + this.panel.getTtmiID() + ") ERROR: " + message);
+	}
+	
 	public boolean isConnected() {
 		// AWSIotMqttClient no tiene método isConnected()
 		// Simplemente verificamos que el cliente esté inicializado

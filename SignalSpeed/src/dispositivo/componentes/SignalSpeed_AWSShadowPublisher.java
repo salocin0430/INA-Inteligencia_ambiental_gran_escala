@@ -162,6 +162,10 @@ public class SignalSpeed_AWSShadowPublisher {
 		System.out.println("(AWSShadowPublisher: " + this.signal.getId() + ") " + message);
 	}
 	
+	private void _error(String message) {
+		System.err.println("(AWSShadowPublisher: " + this.signal.getId() + ") ERROR: " + message);
+	}
+	
 	public boolean isConnected() {
 		// AWSIotMqttClient no tiene método isConnected()
 		// Simplemente verificamos que el cliente esté inicializado
