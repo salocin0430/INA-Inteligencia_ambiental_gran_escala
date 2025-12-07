@@ -22,33 +22,55 @@ INA-Inteligencia_ambiental_gran_escala/
 │   ├── src/smartcar/starter/    # Iniciadores (básico, navigator, AWS)
 │   ├── compilar.sh              # Script de compilación
 │   ├── BUILD.md                 # Instrucciones de build/run
-│   └── scripts/                 # Scripts de ejecución por tipo de vehículo
+│   ├── README_SCRIPTS.md        # Documentación de scripts de ejecución
+│   ├── scripts/                 # Scripts de ejecución por tipo de vehículo
+│   ├── certs/                   # Certificados AWS IoT
+│   ├── policies/                # Políticas de seguridad AWS
+│   └── lib/                     # Librerías específicas del módulo
 │
 ├── roadmanager/                 # Gestor centralizado de carreteras
 │   ├── src/roadmanager/impl/    # Lógica de gestión de alertas y velocidad
 │   ├── src/roadmanager/starter/ # Iniciadores
 │   ├── compilar.sh
 │   ├── BUILD.md
-│   └── scripts/                 # Scripts de ejecución
+│   ├── README_SCRIPTS.md
+│   ├── scripts/                 # Scripts de ejecución
+│   ├── certs/                   # Certificados AWS IoT
+│   └── lib/                     # Librerías específicas del módulo
 │
 ├── SignalSpeed/                 # Controlador de señales de velocidad
 │   ├── src/dispositivo/         # Componentes, API MQTT/REST, interfaces
+│   │   ├── componentes/         # Clases principales (SignalSpeed, AWS Publisher/Subscriber)
+│   │   ├── iniciador/           # Iniciadores (básico, AWS Shadow)
+│   │   ├── api/                 # APIs MQTT y REST
+│   │   └── interfaces/          # Interfaces y configuración
 │   ├── compilar.sh
 │   ├── BUILD.md
+│   ├── README_SCRIPTS.md
 │   ├── AWS_SHADOW_CONFIG.md     # Configuración AWS IoT Device Shadow
-│   └── scripts/                 # Scripts de ejecución con AWS
+│   ├── scripts/                 # Scripts de ejecución con AWS
+│   ├── certs/                   # Certificados AWS IoT
+│   ├── policies/                # Políticas de seguridad AWS
+│   └── lib/                     # Librerías específicas del módulo
 │
 ├── PanelInformativo/            # Controlador de paneles informativos
 │   ├── src/dispositivo/         # Componentes, API MQTT/REST, interfaces
+│   │   ├── componentes/         # Clases principales (PanelInformativo, AWS Publisher/Subscriber)
+│   │   ├── iniciador/           # Iniciadores (básico, AWS Shadow)
+│   │   ├── api/                 # APIs MQTT y REST
+│   │   └── interfaces/          # Interfaces y configuración
 │   ├── compilar.sh
 │   ├── BUILD.md
-│   └── scripts/                 # Scripts de ejecución con AWS
+│   ├── README_SCRIPTS.md
+│   ├── scripts/                 # Scripts de ejecución con AWS
+│   ├── certs/                   # Certificados AWS IoT
+│   ├── policies/                # Políticas de seguridad AWS
+│   └── lib/                     # Librerías específicas del módulo
 │
-├── dispositivo-pi4jv2/          # Implementación específica para Raspberry Pi
-│   ├── src/dispositivo/         # Componentes Pi4J v2
-│   └── README.md                # Guía específica de Pi
-│
-└── lib/                         # Librerías compartidas (MQTT, JSON, AWS SDK)
+├── lib/                         # Librerías compartidas (MQTT, JSON, AWS SDK)
+├── ejemplos_rutas_navigator.md  # Ejemplos de definición de rutas
+├── roads_example.json           # Ejemplo de configuración de carreteras
+└── README.md                    # Este archivo
 ```
 
 ## 🔧 Componentes Principales
@@ -228,14 +250,16 @@ Ver `SignalSpeed/AWS_SHADOW_CONFIG.md` y `SignalSpeed/policies/` para ejemplos.
 - **JSON:** org.json
 - **REST:** Restlet Framework
 - **Logging:** Logger personalizado (MySimpleLogger)
-- **Raspberry Pi:** Pi4J v2 (en dispositivo-pi4jv2/)
+- **Build:** Bash scripts (compilar.sh)
 
 ## 📚 Documentación Adicional
 
 - `BUILD.md` en cada módulo — Instrucciones de compilación específicas
-- `README_SCRIPTS.md` en cada módulo/scripts/ — Detalles de cada script
-- `AWS_SHADOW_CONFIG.md` en SignalSpeed — Configuración AWS IoT
+- `README_SCRIPTS.md` en cada módulo/scripts/ — Detalles de cada script de ejecución
+- `AWS_SHADOW_CONFIG.md` en SignalSpeed — Configuración AWS IoT Device Shadow
 - `Estructura_de_mensajes.md` en smartcar — Formato de mensajes JSON
+- `ejemplos_rutas_navigator.md` — Ejemplos de definición de rutas para vehículos
+- `roads_example.json` — Configuración de ejemplo de segmentos de carretera
 
 ## 📝 Notas Importantes
 
