@@ -11,9 +11,9 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import dispositivo.utils.MySimpleLogger;
 
 
-import aws.AWSIoTManager;  // Clase auxiliar para manejar AWS IoT
+import dispositivo.componentes.AWSIoTManager;  // Clase auxiliar para manejar AWS IoT
 
-public class SignalSpeed implements MqttCallback {
+public class SignalSpeed_aws implements MqttCallback {
     
     private String roadSegment;
     private String id;
@@ -30,7 +30,7 @@ public class SignalSpeed implements MqttCallback {
     private String awsThingName;
     private boolean señalActiva = false;  // Estado actual de la señal
 
-    public SignalSpeed(String roadSegment, String id, int velocidadMaxima, int posicionInicio, int posicionFin,
+    public SignalSpeed_aws String roadSegment, String id, int velocidadMaxima, int posicionInicio, int posicionFin,
                       String mqttBroker) {
         this.roadSegment = roadSegment;
         this.id = id;

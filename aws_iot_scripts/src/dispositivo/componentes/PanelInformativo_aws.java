@@ -19,9 +19,9 @@ import dispositivo.interfaces.IFuncion;
 import dispositivo.utils.MySimpleLogger;
 
 // AWS IMPORT 
-import aws.AWSIoTManager;
+import dispositivo_componentes.AWSIoTManager;
 
-public class PanelInformativo implements MqttCallback {
+public class PanelInformativo_aws implements MqttCallback {
     
     private MqttClient mqttClientSubscriber;  // Para suscribirse (recibir)
     private MqttClient mqttClientPublisher;   // Para publicar
@@ -46,7 +46,7 @@ public class PanelInformativo implements MqttCallback {
     private String awsEndpoint;
     private String awsThingName;
 
-    public PanelInformativo(String mqttBroker, String ttmiID, String roadSegment, int ubicacionInicial) {
+    public PanelInformativo_aws(String mqttBroker, String ttmiID, String roadSegment, int ubicacionInicial) {
         this.roadSegment = roadSegment;
         this.loggerId = "PanelInformativo" + "-" + ttmiID;
         this.ttmiID = ttmiID;

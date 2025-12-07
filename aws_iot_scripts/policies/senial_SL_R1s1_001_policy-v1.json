@@ -1,0 +1,40 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": "arn:aws:iot:region:account:client/senial_*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": "arn:aws:iot:region:account:topicfilter/$aws/things/senial_*/shadow/update/delta"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": "arn:aws:iot:region:account:topicfilter/es/upv/pros/tatami/smartcities/traffic/PTPaterna/step"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Publish",
+      "Resource": "arn:aws:iot:region:account:topic/$aws/things/senial_*/shadow/update"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Publish",
+      "Resource": "arn:aws:iot:region:account:topic/es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/*/signals"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Receive",
+      "Resource": "arn:aws:iot:region:account:topicfilter/$aws/things/senial_*/shadow/update/delta"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Receive",
+      "Resource": "arn:aws:iot:region:account:topicfilter/es/upv/pros/tatami/smartcities/traffic/PTPaterna/step"
+    }
+  ]
+}

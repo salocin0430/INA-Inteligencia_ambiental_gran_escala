@@ -6,6 +6,27 @@
     "configurations": [
         {
             "type": "java",
+            "name": "PanelInformativoIniciador",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.PanelInformativoIniciador",
+            "projectName": ""
+        },
+        {
+            "type": "java",
+            "name": "AWS_iniciador",
+            "request": "launch",
+            "mainClass": "dispositivo.iniciador.AWS_iniciador",
+            "projectName": ""
+        },
+        {
+            "type": "java",
+            "name": "MainGlobal",
+            "request": "launch",
+            "mainClass": "main.MainGlobal",
+            "projectName": ""
+        },
+        {
+            "type": "java",
             "name": "SignalSpeedIniciador",
             "request": "launch",
             "mainClass": "dispositivo.iniciador.SignalSpeedIniciador",

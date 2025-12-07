@@ -5,13 +5,13 @@ import org.json.JSONObject;
 import dispositivo.utils.MySimpleLogger;
 
 
-import aws.AWSIoTManager;
+import dispositivo.componentes.AWSIoTManager;
 
 
 import smartroad.impl.SmartRoad_IncidentNotifier;
 import smartroad.impl.SmartRoad_RoadIncidentsSubscriber;
 
-public class SmartRoad {
+public class SmartRoad_aws {
     
     protected SmartRoad_IncidentNotifier notifier = null;
     protected SmartRoad_RoadIncidentsSubscriber subscriber = null;
@@ -22,7 +22,7 @@ public class SmartRoad {
     private String awsEndpoint;
     private String awsThingName;
 
-    public SmartRoad(String id) {
+    public SmartRoad_aws(String id) {
         this.setId(id);
         this.subscriber = new SmartRoad_RoadIncidentsSubscriber(this);
         this.subscriber.connect();
