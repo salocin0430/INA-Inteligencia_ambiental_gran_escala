@@ -11,7 +11,7 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import dispositivo.utils.MySimpleLogger;
 
 
-import dispositivo.componentes.AWSIoTManager;  // Clase auxiliar para manejar AWS IoT
+// AWS IoT components (siguiendo patrón de smartcar)
 
 public class SignalSpeed implements MqttCallback {
     
@@ -24,13 +24,14 @@ public class SignalSpeed implements MqttCallback {
     private String topicPublicacion;
     private String loggerId;
 
-    // >>> AWS CAMPOS NUEVOS
-    private AWSIoTManager awsManager = null;
+    // AWS IoT components (siguiendo patrón de smartcar)
+    private SignalSpeed_AWSShadowPublisher awsShadowPublisher = null;
+    private SignalSpeed_AWSShadowSubscriber awsShadowSubscriber = null;
     private String awsEndpoint;
     private String awsThingName;
     private boolean señalActiva = false;  // Estado actual de la señal
 
-    public SignalSpeed String roadSegment, String id, int velocidadMaxima, int posicionInicio, int posicionFin,
+    public SignalSpeed(String roadSegment, String id, int velocidadMaxima, int posicionInicio, int posicionFin,
                       String mqttBroker) {
         this.roadSegment = roadSegment;
         this.id = id;
@@ -59,66 +60,46 @@ public class SignalSpeed implements MqttCallback {
     }
 
     /**
-     * Inicializar AWS IoT
+     * Habilita la integración con AWS IoT Device Shadow (siguiendo patrón de smartcar)
+     * @param thingName Nombre del "thing" en AWS IoT (debe coincidir con el nombre configurado en AWS)
+     */
+    public void enableAWSShadow(String thingName) {
+        // Device Shadow: Publicar estado
+        if (this.awsShadowPublisher == null) {
+            this.awsShadowPublisher = new SignalSpeed_AWSShadowPublisher(this, thingName);
+            this.awsShadowPublisher.connect();
+        }
+        // Device Shadow: Recibir comandos
+        if (this.awsShadowSubscriber == null) {
+            this.awsShadowSubscriber = new SignalSpeed_AWSShadowSubscriber(this, thingName, "");
+            this.awsShadowSubscriber.connect();
+        }
+        System.out.println("(SignalSpeed: " + this.id + ") AWS IoT integration enabled for thing: " + thingName);
+        System.out.println("  - Device Shadow: enabled");
+    }
+    
+    /**
+     * Método de compatibilidad con código anterior (mantiene initAWS)
      */
     public void initAWS(String endpoint, String thingName, String certPath, String keyPath, String caPath) {
         this.awsEndpoint = endpoint;
         this.awsThingName = thingName;
-        this.awsManager = new AWSIoTManager(endpoint, thingName, certPath, keyPath, caPath);
-        
-        try {
-            this.awsManager.connect();
-            
-            // Suscribir a comandos AWS (desired.speedlimit)
-            this.awsManager.subscribeToShadowUpdates(message -> {
-                try {
-                    String deltaJson = new String(message.getPayload());
-                    JSONObject root = new JSONObject(deltaJson);
-                    JSONObject state = root.getJSONObject("state");
-                    
-                    if (state.has("activate")) {
-                        boolean activate = state.getBoolean("activate");
-                        if (activate) {
-                            this.señalActiva = true;
-                            publicarEstado();  // Publicar señal activa
-                        } else {
-                            this.señalActiva = false;
-                        }
-                        publishAwsState();
-                        MySimpleLogger.info(loggerId, "AWS → Señal " + (activate ? "ACTIVADA" : "DESACTIVADA"));
-                    }
-                } catch (Exception e) {
-                    MySimpleLogger.error(loggerId, "Error AWS delta SignalSpeed: " + e.getMessage());
-                }
-            });
-            
-            MySimpleLogger.info(loggerId, "✓ AWS IoT inicializado para SignalSpeed: " + thingName);
-        } catch (Exception e) {
-            MySimpleLogger.error(loggerId, "Error AWS init SignalSpeed: " + e.getMessage());
-        }
+        enableAWSShadow(thingName);
     }
 
-    /**
-     * Publicar estado en AWS Shadow
-     */
+    // Método para notificar que el estado cambió (llamado por subscriber después de aplicar comandos)
+    public void notifyStateChanged() {
+        publishAwsState();
+    }
+    
     private void publishAwsState() {
-        if (awsManager == null) return;
-        try {
-            JSONObject state = new JSONObject();
-            state.put("road_segment", roadSegment);
-            state.put("signal_id", id);
-            state.put("speed_limit", velocidadMaxima);
-            state.put("position_start", posicionInicio);
-            state.put("position_end", posicionFin);
-            state.put("active", señalActiva);
-            state.put("timestamp", System.currentTimeMillis());
-            
-            awsManager.updateDeviceShadow(state.toString());
-            MySimpleLogger.info(loggerId, "Shadow SignalSpeed actualizado: " + velocidadMaxima + "km/h " + (señalActiva ? "ACTIVA" : "INACTIVA"));
-        } catch (Exception e) {
-            MySimpleLogger.error(loggerId, "Error publish AWS SignalSpeed: " + e.getMessage());
+        if (awsShadowPublisher != null && awsShadowPublisher.isConnected()) {
+            awsShadowPublisher.publishState();
         }
     }
+    
+    // Getters para las clases AWS
+    public String getLoggerId() { return loggerId; }
 
     // Forma y envía el mensaje JSON con el estado de la señal (MODIFICADO con AWS)
     public void publicarEstado() {
@@ -148,13 +129,8 @@ public class SignalSpeed implements MqttCallback {
             mqttClientPublisher.publish(topicPublicacion, message);
             MySimpleLogger.info(loggerId, "Mensaje LOCAL publicado en: " + topicPublicacion);
 
-            // >>> AWS 
-            if (this.awsManager != null) {
-                String awsTopic = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/" + roadSegment + "/signals";
-                awsManager.publish(awsTopic, payload);
-                MySimpleLogger.info(loggerId, "Mensaje AWS publicado en: " + awsTopic);
-                
-                // Actualizar shadow
+            // Actualizar shadow cuando se publica estado
+            if (this.awsShadowPublisher != null && this.awsShadowPublisher.isConnected()) {
                 this.señalActiva = true;
                 publishAwsState();
             }
@@ -193,10 +169,13 @@ public class SignalSpeed implements MqttCallback {
                 mqttClientPublisher.disconnect();
                 MySimpleLogger.info(loggerId, "MQTT LOCAL desconectado");
             }
-            if (awsManager != null) {
-                awsManager.disconnect();
-                MySimpleLogger.info(loggerId, "AWS IoT desconectado");
+            if (this.awsShadowPublisher != null) {
+                this.awsShadowPublisher.disconnect();
             }
+            if (this.awsShadowSubscriber != null) {
+                this.awsShadowSubscriber.disconnect();
+            }
+            MySimpleLogger.info(loggerId, "AWS IoT desconectado");
         } catch (Exception e) {
             MySimpleLogger.error(loggerId, "Error al cerrar conexiones: " + e.getMessage());
         }

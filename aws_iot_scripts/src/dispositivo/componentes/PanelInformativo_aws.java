@@ -18,13 +18,10 @@ import dispositivo.interfaces.IDispositivo;
 import dispositivo.interfaces.IFuncion;
 import dispositivo.utils.MySimpleLogger;
 
-// AWS IMPORT 
-import dispositivo_componentes.AWSIoTManager;
-
 public class PanelInformativo_aws implements MqttCallback {
     
-    private MqttClient mqttClientSubscriber;  // Para suscribirse (recibir)
-    private MqttClient mqttClientPublisher;   // Para publicar
+    private MqttClient mqttClientSubscriber;
+    private MqttClient mqttClientPublisher;
     private String roadSegment;
     private String loggerId;
     private String ttmiID;
@@ -39,10 +36,11 @@ public class PanelInformativo_aws implements MqttCallback {
     Map<String, Integer> vehiculosEspecialesEnSegmentoCerca = new HashMap<>();
     Map<String, Integer> vehiculosEspecialesEnSegmentoLejos = new HashMap<>();
 
-    private int contadorAccidentes = 0;  // Contador inicializado a 0
+    private int contadorAccidentes = 0;
 
-    // >>> CAMPOS AWS
-    private AWSIoTManager awsManager = null;
+    // AWS IoT components (siguiendo patrón de smartcar)
+    private PanelInformativo_AWSShadowPublisher awsShadowPublisher = null;
+    private PanelInformativo_AWSShadowSubscriber awsShadowSubscriber = null;
     private String awsEndpoint;
     private String awsThingName;
 
@@ -56,92 +54,90 @@ public class PanelInformativo_aws implements MqttCallback {
         this.topicTraffic = topicBase + roadSegment + "/traffic";
         this.topicAlerts = topicBase + roadSegment + "/alerts";
 
-        this.semaforo = Dispositivo.build(ttmiID, ttmiID + ".iot.upv.es", 8182, mqttBroker);
-        IFuncion f1 = Funcion.build("f1", FuncionStatus.OFF);
-        semaforo.addFuncion(f1);
-        IFuncion f2 = Funcion.build("f2", FuncionStatus.OFF);
-        semaforo.addFuncion(f2);
-        IFuncion f3 = Funcion.build("f3", FuncionStatus.OFF);
-        semaforo.addFuncion(f3);
-        // Arrancamos el semáforo
-        semaforo.iniciar();
+        // Crear dispositivo y funciones
+        try {
+            // Crear un dispositivo usando el método build estático
+            // Necesitamos IP y broker MQTT, pero para este caso usamos valores por defecto
+            String localIP = "127.0.0.1";
+            String localBroker = mqttBroker;
+            this.semaforo = Dispositivo.build(ttmiID, localIP, localBroker);
+            
+            IFuncion f1 = Funcion.build("f1", FuncionStatus.OFF);
+            IFuncion f2 = Funcion.build("f2", FuncionStatus.OFF);
+            IFuncion f3 = Funcion.build("f3", FuncionStatus.OFF);
+            
+            semaforo.addFuncion(f1);
+            semaforo.addFuncion(f2);
+            semaforo.addFuncion(f3);
+            
+            semaforo.iniciar();
+            
+        } catch (Exception e) {
+            MySimpleLogger.error(loggerId, "Error creando semáforo: " + e.getMessage());
+            // Crear dispositivo de respaldo
+            try {
+                String localIP = "127.0.0.1";
+                String localBroker = mqttBroker;
+                this.semaforo = Dispositivo.build("fallback", localIP, localBroker);
+            } catch (Exception e2) {
+                MySimpleLogger.error(loggerId, "Error creando dispositivo de respaldo: " + e2.getMessage());
+            }
+        }
 
         try {
-            // Crear cliente MQTT para suscripciones (recibir)
             this.mqttClientSubscriber = new MqttClient(mqttBroker, "PanelInformativo_Sub", new MemoryPersistence());
-            
-            // Crear cliente MQTT para publicaciones (enviar)
             this.mqttClientPublisher = new MqttClient(mqttBroker, "PanelInformativo_Pub", new MemoryPersistence());
             
-            // Configurar opciones de conexión
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
             connOpts.setKeepAliveInterval(60);
             
-            // Configurar callback solo en el subscriber
             this.mqttClientSubscriber.setCallback(this);
             
-            // Conectar ambos clientes al broker
             this.mqttClientSubscriber.connect(connOpts);
             this.mqttClientPublisher.connect(connOpts);
             MySimpleLogger.info(loggerId, "Conectado al broker MQTT LOCAL: " + mqttBroker);
             
         } catch (MqttException e) {
             MySimpleLogger.error(loggerId, "Error al conectar con MQTT LOCAL: " + e.getMessage());
-            throw new RuntimeException("No se pudo conectar al broker MQTT LOCAL", e);
+            // No lanzamos excepción para permitir que el programa continúe
         }
     }
 
     /**
-     *  Inicializar AWS IoT
+     * Inicializar AWS IoT (siguiendo patrón de smartcar)
+     * Nota: Si la conexión falla, el programa continuará sin AWS pero con funcionalidad MQTT local
      */
     public void initAWS(String endpoint, String thingName, String certPath, String keyPath, String caPath) {
         this.awsEndpoint = endpoint;
         this.awsThingName = thingName;
-        this.awsManager = new AWSIoTManager(endpoint, thingName, certPath, keyPath, caPath);
         
         try {
-            this.awsManager.connect();
+            // Device Shadow: Publicar estado
+            if (this.awsShadowPublisher == null) {
+                this.awsShadowPublisher = new PanelInformativo_AWSShadowPublisher(this, thingName, endpoint, certPath, keyPath);
+                this.awsShadowPublisher.connect();
+            }
             
-            // Suscribir a cambios de desired (control remoto de LEDs desde AWS)
-            this.awsManager.subscribeToShadowUpdates(message -> {
-                String deltaJson = new String(message.getPayload());
-                MySimpleLogger.info(loggerId, "[AWS-DELTA-PANEL] " + deltaJson);
-                
-                try {
-                    JSONObject root = new JSONObject(deltaJson);
-                    JSONObject state = root.getJSONObject("state");
-                    
-                    // Si AWS manda desired.f1, f2, f3 → forzar LEDs
-                    if (state.has("f1")) {
-                        String accionF1 = state.getString("f1");
-                        aplicarComandoF1(accionF1);
-                    }
-                    if (state.has("f2")) {
-                        String accionF2 = state.getString("f2");
-                        aplicarComandoF2(accionF2);
-                    }
-                    if (state.has("f3")) {
-                        String accionF3 = state.getString("f3");
-                        aplicarComandoF3(accionF3);
-                    }
-                    
-                    publishAwsState(); // Confirmar que se aplicó
-                } catch (Exception e) {
-                    MySimpleLogger.error(loggerId, "Error procesando AWS delta: " + e.getMessage());
-                }
-            });
+            // Device Shadow: Recibir comandos
+            if (this.awsShadowSubscriber == null) {
+                String deltaTopic = "$aws/things/" + thingName + "/shadow/update/delta";
+                this.awsShadowSubscriber = new PanelInformativo_AWSShadowSubscriber(this, thingName, endpoint, certPath, keyPath, deltaTopic);
+                this.awsShadowSubscriber.connect();
+            }
             
             MySimpleLogger.info(loggerId, "✓ AWS IoT inicializado para panel: " + thingName);
+            MySimpleLogger.info(loggerId, "  - Device Shadow: enabled");
         } catch (Exception e) {
             MySimpleLogger.error(loggerId, "Error AWS init: " + e.getMessage());
+            MySimpleLogger.warn(loggerId, "Continuando sin AWS IoT. Funcionalidad MQTT local seguirá activa.");
+            this.awsShadowPublisher = null;
+            this.awsShadowSubscriber = null;
         }
     }
 
-    /**
-     *  Métodos auxiliares para aplicar comandos F1/F2/F3 desde AWS
-     */
-    private void aplicarComandoF1(String accion) {
+    // Métodos públicos para que las clases AWS puedan acceder
+    public void aplicarComandoF1(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f1").encender();
@@ -154,7 +150,7 @@ public class PanelInformativo_aws implements MqttCallback {
         }
     }
 
-    private void aplicarComandoF2(String accion) {
+    public void aplicarComandoF2(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f2").encender();
@@ -166,7 +162,7 @@ public class PanelInformativo_aws implements MqttCallback {
         }
     }
 
-    private void aplicarComandoF3(String accion) {
+    public void aplicarComandoF3(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f3").encender();
@@ -179,88 +175,100 @@ public class PanelInformativo_aws implements MqttCallback {
         }
     }
 
-    /**
-     * Publicar estado en AWS Shadow
-     */
-    private void publishAwsState() {
-        if (awsManager == null) return;
+    // Método para construir el estado reported (usado por AWSShadowPublisher)
+    public JSONObject buildReportedState() {
+        JSONObject state = new JSONObject();
         try {
-            JSONObject state = new JSONObject();
             state.put("road_segment", roadSegment);
             state.put("ttmi_id", ttmiID);
             state.put("accidents_count", contadorAccidentes);
             state.put("special_vehicles_near", vehiculosEspecialesEnSegmentoCerca.size());
             state.put("special_vehicles_far", vehiculosEspecialesEnSegmentoLejos.size());
-            state.put("f1_status", semaforo.getFuncion("f1").getStatus().toString());
-            state.put("f2_status", semaforo.getFuncion("f2").getStatus().toString());
-            state.put("f3_status", semaforo.getFuncion("f3").getStatus().toString());
-            state.put("timestamp", System.currentTimeMillis());
             
-            awsManager.updateDeviceShadow(state.toString());
+            // Solo si tenemos funciones disponibles
+            if (semaforo.getFuncion("f1") != null) {
+                state.put("f1_status", semaforo.getFuncion("f1").getStatus().toString());
+            }
+            if (semaforo.getFuncion("f2") != null) {
+                state.put("f2_status", semaforo.getFuncion("f2").getStatus().toString());
+            }
+            if (semaforo.getFuncion("f3") != null) {
+                state.put("f3_status", semaforo.getFuncion("f3").getStatus().toString());
+            }
+            
+            state.put("timestamp", System.currentTimeMillis());
         } catch (Exception e) {
-            MySimpleLogger.error(loggerId, "Error publish AWS: " + e.getMessage());
+            MySimpleLogger.error(loggerId, "Error building reported state: " + e.getMessage());
+        }
+        return state;
+    }
+    
+    // Método para notificar que el estado cambió (llamado por subscriber después de aplicar comandos)
+    public void notifyStateChanged() {
+        publishAwsState();
+    }
+    
+    private void publishAwsState() {
+        if (awsShadowPublisher != null && awsShadowPublisher.isConnected()) {
+            awsShadowPublisher.publishState();
         }
     }
+    
+    // Getters para las clases AWS
+    public String getTtmiID() { return ttmiID; }
+    public String getLoggerId() { return loggerId; }
 
-    /**
-     * Inicia el PanelInformativo
-     */
-    public void iniciar() throws MqttException {
+    public void iniciar() {
         MySimpleLogger.info(loggerId, "=== INICIANDO PanelInformativo ===");
         MySimpleLogger.info(loggerId, "RoadSegment: " + roadSegment);
         
-        // Suscribirse al topic de información
-        MySimpleLogger.info(loggerId, "Suscribiendo al topic: " + topicInfo);
-        mqttClientSubscriber.subscribe(topicInfo, 0);
-        MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicInfo);
-        
-        MySimpleLogger.info(loggerId, "Suscribiendo al topic: " + topicTraffic);
-        mqttClientSubscriber.subscribe(topicTraffic, 0);
-        MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicTraffic);
-        
-        MySimpleLogger.info(loggerId, "Suscribiendo al topic: " + topicAlerts);
-        mqttClientSubscriber.subscribe(topicAlerts, 0);        
-        MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicAlerts);
+        if (mqttClientSubscriber != null && mqttClientSubscriber.isConnected()) {
+            try {
+                mqttClientSubscriber.subscribe(topicInfo, 0);
+                MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicInfo);
+                
+                mqttClientSubscriber.subscribe(topicTraffic, 0);
+                MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicTraffic);
+                
+                mqttClientSubscriber.subscribe(topicAlerts, 0);
+                MySimpleLogger.info(loggerId, "Suscrito al topic: " + topicAlerts);
+            } catch (MqttException e) {
+                MySimpleLogger.error(loggerId, "Error al suscribirse a topics: " + e.getMessage());
+            }
+        } else {
+            MySimpleLogger.warn(loggerId, "Cliente MQTT no conectado, no se pueden suscribir a topics");
+        }
     }
     
-    /**
-     * Callback cuando llega un mensaje MQTT
-     */
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         String payload = new String(message.getPayload());
         MySimpleLogger.info(loggerId, "Mensaje recibido en topic " + topic + ": " + payload);
-        MySimpleLogger.info(loggerId, "Cliente MQTT Subscriber conectado: " + (mqttClientSubscriber != null && mqttClientSubscriber.isConnected()));
-        MySimpleLogger.info(loggerId, "Cliente MQTT Publisher conectado: " + (mqttClientPublisher != null && mqttClientPublisher.isConnected()));
         
         try {
-            // Parsear el mensaje JSON
             JSONObject statusMessage = new JSONObject(payload);
             JSONObject msg = statusMessage.getJSONObject("msg");
 
             if (topic.equals(topicTraffic)) {
-                // Obtener el valor del campo "status"
                 String status = msg.getString("status");
                 MySimpleLogger.info(loggerId, "Status obtenido: " + status);
 
                 switch (status) {
                     case "Free_Flow", "Mostly_Free_Flow" -> {
-                        semaforo.getFuncion("f1").apagar();
+                        if (semaforo.getFuncion("f1") != null) semaforo.getFuncion("f1").apagar();
                         MySimpleLogger.info(loggerId, "Apagando f1");
                     }
                     case "Limited_Manouvers" -> {
-                        semaforo.getFuncion("f1").parpadear();  
+                        if (semaforo.getFuncion("f1") != null) semaforo.getFuncion("f1").parpadear();  
                         MySimpleLogger.info(loggerId, "Parpadeando f1");
                     }
                     case "No_Manouvers", "Collapsed" -> {
-                        semaforo.getFuncion("f1").encender();
+                        if (semaforo.getFuncion("f1") != null) semaforo.getFuncion("f1").encender();
                         MySimpleLogger.info(loggerId, "Encendiendo f1");
                     }
-                    default -> {
-                        MySimpleLogger.warn(loggerId, "Estado desconocido: " + status);
-                    }
+                    default -> MySimpleLogger.warn(loggerId, "Estado desconocido: " + status);
                 }
-                publishAwsState(); //  Publicar en AWS después de cambio
+                publishAwsState();
                 
             } else if (topic.equals(topicAlerts)) {
                 String type = statusMessage.getString("type");
@@ -277,15 +285,15 @@ public class PanelInformativo_aws implements MqttCallback {
 
                     MySimpleLogger.info(loggerId, "Accidente " + accidenteId + " (" + event + "): número de accidentes: " + contadorAccidentes);
 
-                    if (contadorAccidentes > 0) {
+                    if (contadorAccidentes > 0 && semaforo.getFuncion("f2") != null) {
                         semaforo.getFuncion("f2").encender();
                         MySimpleLogger.info(loggerId, "Encendiendo f2");
-                    } else {
+                    } else if (semaforo.getFuncion("f2") != null) {
                         semaforo.getFuncion("f2").apagar();
                         MySimpleLogger.info(loggerId, "Apagando f2");
                     }
                 }
-                publishAwsState(); // Publicar en AWS después de cambio
+                publishAwsState();
                 
             } else if (topic.equals(topicInfo)) {
                 String action = msg.getString("action");
@@ -314,18 +322,18 @@ public class PanelInformativo_aws implements MqttCallback {
                     int vehiculosCerca = vehiculosEspecialesEnSegmentoCerca.size();
                     int vehiculosLejos = vehiculosEspecialesEnSegmentoLejos.size();
 
-                    if (vehiculosCerca == 0 && vehiculosLejos == 0) {
+                    if (vehiculosCerca == 0 && vehiculosLejos == 0 && semaforo.getFuncion("f3") != null) {
                         semaforo.getFuncion("f3").apagar();
                         MySimpleLogger.info(loggerId, "Apagando f3");
-                    } else if (vehiculosCerca > 0) {
+                    } else if (vehiculosCerca > 0 && semaforo.getFuncion("f3") != null) {
                         semaforo.getFuncion("f3").parpadear();
                         MySimpleLogger.info(loggerId, "Parpadeando f3");
-                    } else if (vehiculosLejos > 0) {
+                    } else if (vehiculosLejos > 0 && semaforo.getFuncion("f3") != null) {
                         semaforo.getFuncion("f3").encender();
                         MySimpleLogger.info(loggerId, "Encendiendo f3");
                     }
                 }
-                publishAwsState(); // Publicar en AWS después de cambio
+                publishAwsState();
                 
             } else {
                 MySimpleLogger.warn(loggerId, "Topic desconocido: " + topic);
@@ -333,27 +341,23 @@ public class PanelInformativo_aws implements MqttCallback {
             
         } catch (Exception e) {
             MySimpleLogger.error(loggerId, "Error al procesar mensaje: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
-    /**
-     * Desconectar AWS
-     */
     public void disconnectAWS() {
-        if (this.awsManager != null) {
-            try {
-                this.awsManager.disconnect();
-                MySimpleLogger.info(loggerId, "AWS IoT desconectado");
-            } catch (Exception e) {
-                MySimpleLogger.error(loggerId, "Error AWS disconnect: " + e.getMessage());
+        try {
+            if (this.awsShadowPublisher != null) {
+                this.awsShadowPublisher.disconnect();
             }
+            if (this.awsShadowSubscriber != null) {
+                this.awsShadowSubscriber.disconnect();
+            }
+            MySimpleLogger.info(loggerId, "AWS IoT desconectado");
+        } catch (Exception e) {
+            MySimpleLogger.error(loggerId, "Error AWS disconnect: " + e.getMessage());
         }
     }
 
-    /**
-     * Cierra la conexión MQTT LOCAL
-     */
     public void cerrar() {
         try {
             if (mqttClientSubscriber != null && mqttClientSubscriber.isConnected()) {
@@ -366,64 +370,15 @@ public class PanelInformativo_aws implements MqttCallback {
                 mqttClientPublisher.close();
                 MySimpleLogger.info(loggerId, "Conexión MQTT LOCAL Publisher cerrada");
             }
-            if (awsManager != null) {
-                awsManager.disconnect();
-                MySimpleLogger.info(loggerId, "AWS IoT desconectado");
-            }
+            disconnectAWS();
         } catch (MqttException e) {
             MySimpleLogger.error(loggerId, "Error al cerrar conexiones: " + e.getMessage());
         }
     }
     
-    // Métodos de callback requeridos por MqttCallback
     @Override
     public void connectionLost(Throwable cause) {
         MySimpleLogger.error(loggerId, "Conexión MQTT LOCAL perdida: " + (cause != null ? cause.getMessage() : "Desconocido"));
-        if (cause != null) {
-            cause.printStackTrace();
-        }
-        
-        // Intentar reconectar automáticamente con retry
-        int maxRetries = 3;
-        int retryCount = 0;
-        
-        while (retryCount < maxRetries) {
-            try {
-                MySimpleLogger.info(loggerId, "Intentando reconectar... (intento " + (retryCount + 1) + "/" + maxRetries + ")");
-                
-                if (mqttClientSubscriber != null && !mqttClientSubscriber.isConnected()) {
-                    // Configurar opciones de conexión
-                    MqttConnectOptions connOpts = new MqttConnectOptions();
-                    connOpts.setCleanSession(true);
-                    connOpts.setKeepAliveInterval(60);
-                    
-                    mqttClientSubscriber.connect(connOpts);
-                    
-                    // Re-suscribirse a topics
-                    mqttClientSubscriber.subscribe(topicInfo, 0);
-                    MySimpleLogger.info(loggerId, "Reconectado y re-suscrito al topic: " + topicInfo);
-                    mqttClientSubscriber.subscribe(topicTraffic, 0);
-                    MySimpleLogger.info(loggerId, "Reconectado y re-suscrito al topic: " + topicTraffic);
-                    mqttClientSubscriber.subscribe(topicAlerts, 0);
-                    MySimpleLogger.info(loggerId, "Reconectado y re-suscrito al topic: " + topicAlerts);
-                    return; // Éxito, salir del bucle
-                }
-            } catch (MqttException e) {
-                retryCount++;
-                MySimpleLogger.error(loggerId, "Error al reconectar (intento " + retryCount + "): " + e.getMessage());
-                
-                if (retryCount < maxRetries) {
-                    try {
-                        Thread.sleep(2000); // Esperar 2 segundos antes del siguiente intento
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            }
-        }
-        
-        MySimpleLogger.error(loggerId, "No se pudo reconectar después de " + maxRetries + " intentos");
     }
     
     @Override

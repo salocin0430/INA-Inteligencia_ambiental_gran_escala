@@ -18,8 +18,7 @@ import dispositivo.interfaces.IDispositivo;
 import dispositivo.interfaces.IFuncion;
 import dispositivo.utils.MySimpleLogger;
 
-// AWS IMPORT 
-import dispositivo_componentes.AWSIoTManager;
+// AWS IoT components (siguiendo patrón de smartcar)
 
 public class PanelInformativo implements MqttCallback {
     
@@ -41,8 +40,9 @@ public class PanelInformativo implements MqttCallback {
 
     private int contadorAccidentes = 0;  // Contador inicializado a 0
 
-    // >>> CAMPOS AWS
-    private AWSIoTManager awsManager = null;
+    // AWS IoT components (siguiendo patrón de smartcar)
+    private PanelInformativo_AWSShadowPublisher awsShadowPublisher = null;
+    private PanelInformativo_AWSShadowSubscriber awsShadowSubscriber = null;
     private String awsEndpoint;
     private String awsThingName;
 
@@ -93,55 +93,35 @@ public class PanelInformativo implements MqttCallback {
     }
 
     /**
-     *  Inicializar AWS IoT
+     * Habilita la integración con AWS IoT Device Shadow (siguiendo patrón de smartcar)
+     * @param thingName Nombre del "thing" en AWS IoT (debe coincidir con el nombre configurado en AWS)
+     */
+    public void enableAWSShadow(String thingName) {
+        // Device Shadow: Publicar estado
+        if (this.awsShadowPublisher == null) {
+            this.awsShadowPublisher = new PanelInformativo_AWSShadowPublisher(this, thingName);
+            this.awsShadowPublisher.connect();
+        }
+        // Device Shadow: Recibir comandos
+        if (this.awsShadowSubscriber == null) {
+            this.awsShadowSubscriber = new PanelInformativo_AWSShadowSubscriber(this, thingName, "");
+            this.awsShadowSubscriber.connect();
+        }
+        System.out.println("(PanelInformativo: " + this.ttmiID + ") AWS IoT integration enabled for thing: " + thingName);
+        System.out.println("  - Device Shadow: enabled");
+    }
+    
+    /**
+     * Método de compatibilidad con código anterior (mantiene initAWS)
      */
     public void initAWS(String endpoint, String thingName, String certPath, String keyPath, String caPath) {
         this.awsEndpoint = endpoint;
         this.awsThingName = thingName;
-        this.awsManager = new AWSIoTManager(endpoint, thingName, certPath, keyPath, caPath);
-        
-        try {
-            this.awsManager.connect();
-            
-            // Suscribir a cambios de desired (control remoto de LEDs desde AWS)
-            this.awsManager.subscribeToShadowUpdates(message -> {
-                String deltaJson = new String(message.getPayload());
-                MySimpleLogger.info(loggerId, "[AWS-DELTA-PANEL] " + deltaJson);
-                
-                try {
-                    JSONObject root = new JSONObject(deltaJson);
-                    JSONObject state = root.getJSONObject("state");
-                    
-                    // Si AWS manda desired.f1, f2, f3 → forzar LEDs
-                    if (state.has("f1")) {
-                        String accionF1 = state.getString("f1");
-                        aplicarComandoF1(accionF1);
-                    }
-                    if (state.has("f2")) {
-                        String accionF2 = state.getString("f2");
-                        aplicarComandoF2(accionF2);
-                    }
-                    if (state.has("f3")) {
-                        String accionF3 = state.getString("f3");
-                        aplicarComandoF3(accionF3);
-                    }
-                    
-                    publishAwsState(); // Confirmar que se aplicó
-                } catch (Exception e) {
-                    MySimpleLogger.error(loggerId, "Error procesando AWS delta: " + e.getMessage());
-                }
-            });
-            
-            MySimpleLogger.info(loggerId, "✓ AWS IoT inicializado para panel: " + thingName);
-        } catch (Exception e) {
-            MySimpleLogger.error(loggerId, "Error AWS init: " + e.getMessage());
-        }
+        enableAWSShadow(thingName);
     }
 
-    /**
-     *  Métodos auxiliares para aplicar comandos F1/F2/F3 desde AWS
-     */
-    private void aplicarComandoF1(String accion) {
+    // Métodos públicos para que las clases AWS puedan acceder
+    public void aplicarComandoF1(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f1").encender();
@@ -154,7 +134,7 @@ public class PanelInformativo implements MqttCallback {
         }
     }
 
-    private void aplicarComandoF2(String accion) {
+    public void aplicarComandoF2(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f2").encender();
@@ -166,7 +146,7 @@ public class PanelInformativo implements MqttCallback {
         }
     }
 
-    private void aplicarComandoF3(String accion) {
+    public void aplicarComandoF3(String accion) {
         try {
             switch (accion.toLowerCase()) {
                 case "on" -> semaforo.getFuncion("f3").encender();
@@ -179,28 +159,25 @@ public class PanelInformativo implements MqttCallback {
         }
     }
 
-    /**
-     * Publicar estado en AWS Shadow
-     */
+    // Método para notificar que el estado cambió (llamado por subscriber después de aplicar comandos)
+    public void notifyStateChanged() {
+        publishAwsState();
+    }
+    
     private void publishAwsState() {
-        if (awsManager == null) return;
-        try {
-            JSONObject state = new JSONObject();
-            state.put("road_segment", roadSegment);
-            state.put("ttmi_id", ttmiID);
-            state.put("accidents_count", contadorAccidentes);
-            state.put("special_vehicles_near", vehiculosEspecialesEnSegmentoCerca.size());
-            state.put("special_vehicles_far", vehiculosEspecialesEnSegmentoLejos.size());
-            state.put("f1_status", semaforo.getFuncion("f1").getStatus().toString());
-            state.put("f2_status", semaforo.getFuncion("f2").getStatus().toString());
-            state.put("f3_status", semaforo.getFuncion("f3").getStatus().toString());
-            state.put("timestamp", System.currentTimeMillis());
-            
-            awsManager.updateDeviceShadow(state.toString());
-        } catch (Exception e) {
-            MySimpleLogger.error(loggerId, "Error publish AWS: " + e.getMessage());
+        if (awsShadowPublisher != null && awsShadowPublisher.isConnected()) {
+            awsShadowPublisher.publishState();
         }
     }
+    
+    // Getters para las clases AWS
+    public String getTtmiID() { return ttmiID; }
+    public String getLoggerId() { return loggerId; }
+    public String getRoadSegment() { return roadSegment; }
+    public int getContadorAccidentes() { return contadorAccidentes; }
+    public Map<String, Integer> getVehiculosEspecialesEnSegmentoCerca() { return vehiculosEspecialesEnSegmentoCerca; }
+    public Map<String, Integer> getVehiculosEspecialesEnSegmentoLejos() { return vehiculosEspecialesEnSegmentoLejos; }
+    public IDispositivo getSemaforo() { return semaforo; }
 
     /**
      * Inicia el PanelInformativo
@@ -341,13 +318,16 @@ public class PanelInformativo implements MqttCallback {
      * Desconectar AWS
      */
     public void disconnectAWS() {
-        if (this.awsManager != null) {
-            try {
-                this.awsManager.disconnect();
-                MySimpleLogger.info(loggerId, "AWS IoT desconectado");
-            } catch (Exception e) {
-                MySimpleLogger.error(loggerId, "Error AWS disconnect: " + e.getMessage());
+        try {
+            if (this.awsShadowPublisher != null) {
+                this.awsShadowPublisher.disconnect();
             }
+            if (this.awsShadowSubscriber != null) {
+                this.awsShadowSubscriber.disconnect();
+            }
+            MySimpleLogger.info(loggerId, "AWS IoT desconectado");
+        } catch (Exception e) {
+            MySimpleLogger.error(loggerId, "Error AWS disconnect: " + e.getMessage());
         }
     }
 
@@ -366,10 +346,7 @@ public class PanelInformativo implements MqttCallback {
                 mqttClientPublisher.close();
                 MySimpleLogger.info(loggerId, "Conexión MQTT LOCAL Publisher cerrada");
             }
-            if (awsManager != null) {
-                awsManager.disconnect();
-                MySimpleLogger.info(loggerId, "AWS IoT desconectado");
-            }
+            disconnectAWS();
         } catch (MqttException e) {
             MySimpleLogger.error(loggerId, "Error al cerrar conexiones: " + e.getMessage());
         }

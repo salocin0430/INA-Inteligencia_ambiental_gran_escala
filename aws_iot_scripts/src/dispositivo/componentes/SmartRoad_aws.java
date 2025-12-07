@@ -1,159 +1,99 @@
-package smartroad.impl;
+package dispositivo.componentes;
 
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.json.JSONObject;
 import dispositivo.utils.MySimpleLogger;
-
-
-import dispositivo.componentes.AWSIoTManager;
-
-
-import smartroad.impl.SmartRoad_IncidentNotifier;
-import smartroad.impl.SmartRoad_RoadIncidentsSubscriber;
+import org.json.JSONObject;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 
 public class SmartRoad_aws {
+    private String roadSegment;
+    private String loggerId;
+    private AWSIoTManager awsManager;
     
-    protected SmartRoad_IncidentNotifier notifier = null;
-    protected SmartRoad_RoadIncidentsSubscriber subscriber = null;
-    protected String id = null;
-    
-    // >>> CAMPOS AWS
-    private AWSIoTManager awsManager = null;
-    private String awsEndpoint;
-    private String awsThingName;
-
-    public SmartRoad_aws(String id) {
-        this.setId(id);
-        this.subscriber = new SmartRoad_RoadIncidentsSubscriber(this);
-        this.subscriber.connect();
-        this.subscriber.subscribe("es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/" + id + "/alerts");
-        
-        // Inicializar y conectar el notifier para retransmitir alertas al canal info
-        this.notifier = new SmartRoad_IncidentNotifier(this);
-        this.notifier.connect();
-        
-        MySimpleLogger.info("SmartRoad-" + id, "SmartRoad inicializado para segmento: " + id);
+    public SmartRoad_aws(String roadSegment) {
+        this.roadSegment = roadSegment;
+        this.loggerId = "SmartRoad_aws-" + roadSegment;
+        MySimpleLogger.info(loggerId, "Constructor llamado para segmento: " + roadSegment);
     }
-
-    /**
-     * Inicializar AWS IoT
-     */
+    
     public void initAWS(String endpoint, String thingName, String certPath, String keyPath, String caPath) {
-        this.awsEndpoint = endpoint;
-        this.awsThingName = thingName;
-        this.awsManager = new AWSIoTManager(endpoint, thingName, certPath, keyPath, caPath);
-        
         try {
+            this.awsManager = new AWSIoTManager(endpoint, thingName, certPath, keyPath, caPath);
             this.awsManager.connect();
             
-            // Suscribir a alerts AWS 
-            String awsAlertsTopic = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/" + this.id + "/alerts";
-            this.awsManager.subscribe(awsAlertsTopic, message -> {
-                try {
-                    String awsAlert = new String(message.getPayload());
-                    MySimpleLogger.info("SmartRoad-" + id, "[AWS-ALERTS] Recibido: " + awsAlert);
-                    
-                    // Retransmitir AWS alert → info AWS
-                    String awsInfoTopic = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/" + this.id + "/info";
-                    awsManager.publish(awsInfoTopic, awsAlert);
-                    
-                    // Retransmitir a LOCAL
-                    notify(awsAlert);
-                    
-                } catch (Exception e) {
-                    MySimpleLogger.error("SmartRoad-" + id, "Error procesar AWS alert: " + e.getMessage());
-                }
-            });
+            // Suscribirse para recibir comandos con callback
+            String deltaTopic = "$aws/things/" + thingName + "/shadow/update/delta";
             
-            MySimpleLogger.info("SmartRoad-" + id, "✓ AWS IoT inicializado para SmartRoad: " + thingName);
-            
-        } catch (Exception e) {
-            MySimpleLogger.error("SmartRoad-" + id, "Error AWS init: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Publicar estado en AWS Shadow
-     */
-    private void publishAwsState() {
-        if (awsManager == null) return;
-        
-        try {
-            JSONObject state = new JSONObject();
-            state.put("road_segment", this.id);
-            state.put("status", "active");
-            state.put("local_subscriber", subscriber != null && subscriber.isConnected());
-            state.put("local_notifier", notifier != null && notifier.isConnected());
-            state.put("aws_connected", awsManager.isConnected());
-            state.put("timestamp", System.currentTimeMillis());
-            
-            awsManager.updateDeviceShadow(state.toString());
-            MySimpleLogger.info("SmartRoad-" + id, "Shadow actualizado: segmento " + this.id);
-            
-        } catch (Exception e) {
-            MySimpleLogger.error("SmartRoad-" + id, "Error publish AWS state: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Retransmite un mensaje recibido en /alerts al canal /info
-     * @param message El mensaje JSON a retransmitir
-     * Publica en AWS
-     */
-    public void notify(String message) {
-        
-        if (this.notifier != null) {
-            this.notifier.notify(message);
-            MySimpleLogger.info("SmartRoad-" + id, "Alert retransmitido LOCAL → /info");
-        }
-        
-        // AWS 
-        if (this.awsManager != null) {
             try {
-                String awsInfoTopic = "es/upv/pros/tatami/smartcities/traffic/PTPaterna/road/" + this.id + "/info";
-                awsManager.publish(awsInfoTopic, message);
-                MySimpleLogger.info("SmartRoad-" + id, "Alert retransmitido AWS → /info");
-                
-                // Actualizar shadow
-                publishAwsState();
-                
+                // Intentar usar AWS SDK con callback
+                this.awsManager.subscribeWithCallback(deltaTopic, 1, new com.amazonaws.services.iot.client.core.AwsIotTopicCallback() {
+                    @Override
+                    public void onMessage(com.amazonaws.services.iot.client.AWSIotMessage message) {
+                        String payload = message.getStringPayload();
+                        MySimpleLogger.info(loggerId, "[AWS-SmartRoad] Mensaje recibido: " + payload);
+                        
+                        try {
+                            JSONObject json = new JSONObject(payload);
+                            if (json.has("state")) {
+                                JSONObject state = json.getJSONObject("state");
+                                // Procesar comandos aquí
+                                MySimpleLogger.info(loggerId, "Comando recibido: " + state.toString());
+                            }
+                        } catch (Exception e) {
+                            MySimpleLogger.error(loggerId, "Error procesando mensaje: " + e.getMessage());
+                        }
+                    }
+                });
             } catch (Exception e) {
-                MySimpleLogger.error("SmartRoad-" + id, "Error AWS notify: " + e.getMessage());
+                // Fallback a Paho
+                this.awsManager.setCallback(new MqttCallback() {
+                    @Override
+                    public void messageArrived(String topic, MqttMessage message) throws Exception {
+                        String payload = new String(message.getPayload());
+                        MySimpleLogger.info(loggerId, "[AWS-SmartRoad] Mensaje recibido: " + payload);
+                        
+                        try {
+                            JSONObject json = new JSONObject(payload);
+                            if (json.has("state")) {
+                                JSONObject state = json.getJSONObject("state");
+                                // Procesar comandos aquí
+                                MySimpleLogger.info(loggerId, "Comando recibido: " + state.toString());
+                            }
+                        } catch (Exception ex) {
+                            MySimpleLogger.error(loggerId, "Error procesando mensaje: " + ex.getMessage());
+                        }
+                    }
+                    
+                    @Override
+                    public void connectionLost(Throwable cause) {
+                        MySimpleLogger.error(loggerId, "Conexión AWS perdida: " + (cause != null ? cause.getMessage() : "Desconocido"));
+                    }
+                    
+                    @Override
+                    public void deliveryComplete(IMqttDeliveryToken token) {
+                        // No necesario
+                    }
+                });
+                this.awsManager.subscribe(deltaTopic, 1);
             }
+            
+            MySimpleLogger.info(loggerId, "✓ AWS IoT inicializado para SmartRoad: " + thingName);
+        } catch (Exception e) {
+            MySimpleLogger.error(loggerId, "Error inicializando AWS en SmartRoad: " + e.getMessage());
+            MySimpleLogger.warn(loggerId, "Continuando sin AWS IoT. Funcionalidad local seguirá activa.");
+            this.awsManager = null; // Marcar como no disponible
         }
-    }
-
-    public String getId() {
-        return id;
     }
     
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    /**
-     *  Desconectar AWS
-     */
     public void disconnectAWS() {
         if (this.awsManager != null) {
             try {
                 this.awsManager.disconnect();
-                MySimpleLogger.info("SmartRoad-" + id, "AWS IoT desconectado: " + this.id);
+                MySimpleLogger.info(loggerId, "AWS IoT desconectado para SmartRoad");
             } catch (Exception e) {
-                MySimpleLogger.error("SmartRoad-" + id, "Error AWS disconnect: " + e.getMessage());
+                MySimpleLogger.error(loggerId, "Error desconectando AWS: " + e.getMessage());
             }
         }
-    }
-
-    /**
-     *  Estado de conexiones
-     */
-    public String getConnectionStatus() {
-        StringBuilder status = new StringBuilder();
-        status.append("SmartRoad ").append(id).append(":\n");
-        status.append("- LOCAL Subscriber: ").append(subscriber != null && subscriber.isConnected() ? "OK" : "OFFLINE").append("\n");
-        status.append("- LOCAL Notifier: ").append(notifier != null && notifier.isConnected() ? "OK" : "OFFLINE").append("\n");
-        status.append("- AWS IoT: ").append(awsManager != null && awsManager.isConnected() ? "OK" : "OFFLINE").append("\n");
-        return status.toString();
     }
 }

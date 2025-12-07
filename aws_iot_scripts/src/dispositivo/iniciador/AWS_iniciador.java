@@ -1,17 +1,13 @@
 package dispositivo.iniciador;
 
-
 import dispositivo.componentes.PanelInformativo_aws;
 import dispositivo.componentes.SignalSpeed_aws;
-import dispositivo.componentes.AWSIoTManager;
 import dispositivo.componentes.SmartRoad_aws;
-
 
 public class AWS_iniciador {
     public static void main(String[] args) throws Exception {
         String brokerLocal = "tcp://tambori.dsic.upv.es:10083";
         String awsEndpoint = "a7sfhuya0h87y-ats.iot.us-east-1.amazonaws.com";
-
 
         // 2. Crear y configurar PanelInformativo
         PanelInformativo_aws panel = new PanelInformativo_aws(brokerLocal, "ttmi1", "R1s1", 500);
