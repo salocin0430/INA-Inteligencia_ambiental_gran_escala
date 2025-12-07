@@ -6,18 +6,6 @@
     "configurations": [
         {
             "type": "java",
-            "name": "PanelInformativoIniciador",
-            "request": "launch",
-            "mainClass": "dispositivo.iniciador.PanelInformativoIniciador",
-            "args": [
-                "tcp://tambori.dsic.upv.es:1883",
-                "ttmi050",
-                "R1s2a",
-                "50"
-            ]
-        },
-        {
-            "type": "java",
             "name": "SignalSpeedIniciador",
             "request": "launch",
             "mainClass": "dispositivo.iniciador.SignalSpeedIniciador",

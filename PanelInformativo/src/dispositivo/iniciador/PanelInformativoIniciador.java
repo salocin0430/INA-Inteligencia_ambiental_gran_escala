@@ -11,10 +11,12 @@ public class PanelInformativoIniciador {
         // Verificar argumentos
         if (args.length < 4) {
             MySimpleLogger.error("PanelInformativoIniciador","The number of arguments is not correct. Please, check the usage. You used " + String.valueOf(args.length) + " arguments.");
-            MySimpleLogger.error("CPanelInformativoIniciador", 
-                "Uso: java PanelInformativoIniciador <mqtt-broker> <ttmiID> <road-segment> <ubicación-inicial>");
             MySimpleLogger.error("PanelInformativoIniciador", 
-                "Ejemplo: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50");
+                "Uso: java PanelInformativoIniciador <mqtt-broker> <ttmiID> <road-segment> <ubicación-inicial> [--aws-shadow <thingName>]");
+            MySimpleLogger.error("PanelInformativoIniciador", 
+                "Ejemplo sin AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50");
+            MySimpleLogger.error("PanelInformativoIniciador", 
+                "Ejemplo con AWS: java PanelInformativoIniciador tcp://tambori.dsic.upv.es:1883 ttmi050 R1s6a 50 --aws-shadow panel-R1s6a-001");
             System.exit(1);
         }
         
@@ -23,18 +25,36 @@ public class PanelInformativoIniciador {
         String roadSegment = args[2];
         int ubicacionInicial = Integer.parseInt(args[3]);
         
+        // Verificar si se solicita AWS Shadow
+        String awsThingName = null;
+        if (args.length >= 6 && "--aws-shadow".equals(args[4])) {
+            awsThingName = args[5];
+        }
+        
         // Mostrar configuración
         MySimpleLogger.info("PanelInformativoIniciador", "Configuración:");
         MySimpleLogger.info("PanelInformativoIniciador", "  MQTT Broker: " + mqttBroker);
         MySimpleLogger.info("PanelInformativoIniciador", "  ttmiID: " + ttmiID);
         MySimpleLogger.info("PanelInformativoIniciador", "  roadSegment: " + roadSegment);
         MySimpleLogger.info("PanelInformativoIniciador", "  ubicaciónInicial: " + ubicacionInicial);
+        if (awsThingName != null) {
+            MySimpleLogger.info("PanelInformativoIniciador", "  AWS IoT Thing Name: " + awsThingName);
+        } else {
+            MySimpleLogger.info("PanelInformativoIniciador", "  AWS IoT: DESHABILITADO");
+        }
         
         // Crear y configurar el PanelInformativo
         final PanelInformativo panelInformativo;
         
         try {
             panelInformativo = new PanelInformativo(mqttBroker, ttmiID, roadSegment, ubicacionInicial);
+            
+            // Habilitar integración con AWS IoT si se proporcionó el Thing Name
+            if (awsThingName != null) {
+                MySimpleLogger.info("PanelInformativoIniciador", "Habilitando integración AWS IoT Device Shadow...");
+                panelInformativo.enableAWSShadow(awsThingName);
+                MySimpleLogger.info("PanelInformativoIniciador", "AWS IoT Device Shadow habilitado para Thing: " + awsThingName);
+            }
             
             // Agregar shutdown hook para cerrar correctamente
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {

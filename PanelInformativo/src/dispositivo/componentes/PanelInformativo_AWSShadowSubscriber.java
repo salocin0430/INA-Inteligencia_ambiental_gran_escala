@@ -172,6 +172,10 @@ public class PanelInformativo_AWSShadowSubscriber extends AWSIotTopic {
 		System.out.println("(AWSShadowSubscriber: " + this.panel.getTtmiID() + ") " + message);
 	}
 	
+	private void _error(String message) {
+		System.err.println("(AWSShadowSubscriber: " + this.panel.getTtmiID() + ") ERROR: " + message);
+	}
+	
 	public boolean isConnected() {
 		// AWSIotMqttClient no tiene método isConnected()
 		// Simplemente verificamos que el cliente esté inicializado
