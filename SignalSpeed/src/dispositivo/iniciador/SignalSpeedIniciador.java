@@ -23,27 +23,58 @@ public class SignalSpeedIniciador {
             int velocidadMaxima = Integer.parseInt(args[3]);
             int posicionInicio = Integer.parseInt(args[4]);
             int posicionFin = Integer.parseInt(args[5]);
+            
+            // Parámetro opcional 7: nombre del Thing en AWS IoT (para integración con AWS)
+            String awsThingName = null;
+            if (args.length >= 7) {
+                awsThingName = args[6];
+            }
 
-            MySimpleLogger.info("SignalSpeedIniciador", "Configuración:");
+            MySimpleLogger.info("SignalSpeedIniciador", "============================================");
+            MySimpleLogger.info("SignalSpeedIniciador", "Configuración de Señal de Velocidad:");
             MySimpleLogger.info("SignalSpeedIniciador", "  MQTT Broker: " + mqttBroker);
             MySimpleLogger.info("SignalSpeedIniciador", "  ID Señal: " + id);
             MySimpleLogger.info("SignalSpeedIniciador", "  Road Segment: " + roadSegment);
             MySimpleLogger.info("SignalSpeedIniciador", "  Velocidad Máxima: " + velocidadMaxima);
             MySimpleLogger.info("SignalSpeedIniciador", "  Posición Inicio: " + posicionInicio);
             MySimpleLogger.info("SignalSpeedIniciador", "  Posición Fin: " + posicionFin);
+            if (awsThingName != null) {
+                MySimpleLogger.info("SignalSpeedIniciador", "  AWS Thing Name: " + awsThingName);
+            }
+            MySimpleLogger.info("SignalSpeedIniciador", "============================================");
 
             // Crear instancia SignalSpeed
             SignalSpeed signalSpeed = new SignalSpeed(roadSegment, id, velocidadMaxima, posicionInicio, posicionFin,
                                                       mqttBroker);
-                                                    
+            
+            // Habilitar integración con AWS IoT Device Shadow si se proporciona thingName
+            if (awsThingName != null && !awsThingName.isEmpty()) {
+                MySimpleLogger.info("SignalSpeedIniciador", "Habilitando integración con AWS IoT...");
+                signalSpeed.enableAWSShadow(awsThingName);
+                MySimpleLogger.info("SignalSpeedIniciador", "AWS IoT Device Shadow habilitado para Thing: " + awsThingName);
+            }
+            
+            // Publicar estado inicial
             signalSpeed.publicarEstado();
 
-            // Añade aquí el arranque de publicación periódica o lógica necesaria
-            // Por ejemplo, si SignalSpeed tiene un método iniciarPublicacionPeriodicá(intervaloMs)
-            // signalSpeed.iniciarPublicacionPeriodica(1000);
-
-            // Para evitar cerrar el programa inmediatamente (si es necesario)
-            // Thread.sleep o espera eventos MQTT, según tu diseño
+            MySimpleLogger.info("SignalSpeedIniciador", "Señal iniciada correctamente");
+            MySimpleLogger.info("SignalSpeedIniciador", "Presiona Ctrl+C para detener");
+            MySimpleLogger.info("SignalSpeedIniciador", "============================================");
+            
+            // Mantener el programa corriendo
+            // La señal está suscrita al topic 'step' y publicará su estado cuando se reciba un paso
+            try {
+                while (true) {
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                MySimpleLogger.info("SignalSpeedIniciador", "Programa interrumpido");
+            } finally {
+                // Cerrar todas las conexiones
+                signalSpeed.cerrar();
+                MySimpleLogger.info("SignalSpeedIniciador", "Conexiones cerradas");
+            }
+            return;
 
         } catch (Exception e) {
             MySimpleLogger.error("SignalSpeedIniciador", "Error al iniciar SignalSpeed: " + e.getMessage());

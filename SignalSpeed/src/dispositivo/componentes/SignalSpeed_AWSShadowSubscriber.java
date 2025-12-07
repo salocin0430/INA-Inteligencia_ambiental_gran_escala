@@ -163,6 +163,10 @@ public class SignalSpeed_AWSShadowSubscriber extends AWSIotTopic {
 		System.out.println("(AWSShadowSubscriber: " + this.signal.getId() + ") " + message);
 	}
 	
+	private void _error(String message) {
+		System.err.println("(AWSShadowSubscriber: " + this.signal.getId() + ") ERROR: " + message);
+	}
+	
 	public boolean isConnected() {
 		// AWSIotMqttClient no tiene método isConnected()
 		// Simplemente verificamos que el cliente esté inicializado
